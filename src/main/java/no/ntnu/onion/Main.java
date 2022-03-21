@@ -1,7 +1,6 @@
 package no.ntnu.onion;
 
-import no.ntnu.onion.network.Node;
-import no.ntnu.onion.util.DiffieHellman;
+import no.ntnu.onion.routing.Node;
 
 import java.io.IOException;
 

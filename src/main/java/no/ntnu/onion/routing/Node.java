@@ -1,4 +1,4 @@
-package no.ntnu.onion.network;
+package no.ntnu.onion.routing;
 
 import no.ntnu.onion.util.MessageHandler;
 
@@ -11,6 +11,36 @@ import java.net.Socket;
  * well as encrypt and decrypt them.
  *
  * In practice the Node can act as either party in a client/server-connection
+ *
+ *
+ * ------ BYTE ARRAY STRUCTURE -----
+ *
+ *
+ *  The first byte defines if the message is a handshake or a message. What comes after depends on this. Here
+ *  is a simple illustration:
+ *
+ *  Handshake (1):
+ *
+ *       Public Key Length
+ *             v
+ *   ----------------------------------------
+ *  | 1 | PKLN |    Public key    | Padding |
+ *  ----------------------------------------
+ *
+ *
+ *  Message (0):
+ *      Before decryption:
+ *       ----------------------------------------
+ *      | 0 |         Encrypted message         |
+ *      ----------------------------------------
+ *
+ *      After decryption:
+ *        ---------------------------------------
+ *      | 0 | To | MGLN |    Message  | Padding |
+ *      ----------------------------------------
+ *                  ^
+ *           Message length
+ *
  */
 public class Node {
     private final String privateKey;
@@ -23,7 +53,7 @@ public class Node {
      * @param port port to use for the connection
      */
     public Node(Integer port) throws IOException {
-        this.port= port;
+        this.port = port;
         this.privateKey = generatePrivateKey();
 
         if(port == 1000) {

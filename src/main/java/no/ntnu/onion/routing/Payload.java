@@ -1,4 +1,4 @@
-package no.ntnu.onion.network;
+package no.ntnu.onion.routing;
 
 /**
  * This class defines _decrypted_ the structure of a message in the onion routing system. This is an integral part of
