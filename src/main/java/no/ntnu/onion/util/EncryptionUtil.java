@@ -6,6 +6,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -15,16 +16,44 @@ public class EncryptionUtil {
     private static final String SECRET_KEY_ALGORITHM = "AES";
     private static final String CIPHER_TRANSFORMATION = "AES/CBC/PKCS5Padding";
 
-    private byte[] secret;
-    private Cipher cipher;
+    private Cipher encryptionCipher;
+    private Cipher decryptionCipher;
 
     public EncryptionUtil(byte[] secret) {
-        this.secret= secret;
         try {
             SecretKeySpec aesKey = new SecretKeySpec(secret, 0, 16, SECRET_KEY_ALGORITHM);
-            this.cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-            this.cipher.init(Cipher.ENCRYPT_MODE, aesKey);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
+
+            this.encryptionCipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+            this.encryptionCipher.init(Cipher.ENCRYPT_MODE, aesKey);
+
+            AlgorithmParameters aesParams = AlgorithmParameters.getInstance(SECRET_KEY_ALGORITHM);
+            aesParams.init(getEncodedParams());
+
+            this.decryptionCipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+            this.decryptionCipher.init(Cipher.DECRYPT_MODE, aesKey, aesParams);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public EncryptionUtil(byte[] secret, byte[] encodedParams) {
+        try {
+            SecretKeySpec aesKey = new SecretKeySpec(secret, 0, 16, SECRET_KEY_ALGORITHM);
+
+            AlgorithmParameters aesParams = AlgorithmParameters.getInstance(SECRET_KEY_ALGORITHM);
+            aesParams.init(encodedParams);
+
+            // Setting up for encryption with the given params
+            this.encryptionCipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+            this.encryptionCipher.init(Cipher.ENCRYPT_MODE, aesKey, aesParams);
+
+            // Setting up for decryption with the given params
+            this.decryptionCipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+            this.decryptionCipher.init(Cipher.DECRYPT_MODE, aesKey, aesParams);
+
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -32,24 +61,28 @@ public class EncryptionUtil {
 
     public byte[] getEncodedParams() {
         try {
-            return cipher.getParameters().getEncoded();
+            return encryptionCipher.getParameters().getEncoded();
         } catch (IOException e) {
             e.printStackTrace();
         }
         return new byte[0];
     }
 
-    public byte[] encrypt(String message) throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException, IOException {
-        byte[] cleartext = message.getBytes();
-        return cipher.doFinal(cleartext);
+    public byte[] encrypt(byte[] message){
+        try {
+            return encryptionCipher.doFinal(message);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
-    public String decrypt(byte[] encryptedMessage, byte[] encodedParams) throws IOException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
-        SecretKeySpec aesKey = new SecretKeySpec(secret, 0, 16, SECRET_KEY_ALGORITHM);
-        AlgorithmParameters aesParams = AlgorithmParameters.getInstance(SECRET_KEY_ALGORITHM);
-        aesParams.init(encodedParams);
-        Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-        cipher.init(Cipher.DECRYPT_MODE, aesKey, aesParams);
-        return new String(cipher.doFinal(encryptedMessage));
+    public String decrypt(byte[] encryptedMessage){
+        try {
+           return new String(decryptionCipher.doFinal(encryptedMessage));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

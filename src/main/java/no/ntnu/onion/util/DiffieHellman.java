@@ -16,36 +16,50 @@ public class DiffieHellman {
 
     public DiffieHellman(){}
 
-    public byte[] initializeKeyPair() throws InvalidKeyException, NoSuchAlgorithmException {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(KEYPAIR_ALGORITHM);
-        keyPairGenerator.initialize(KEYPAIR_SIZE);
-        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+    public byte[] initializeKeyPair() {
+        try {
+            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(KEYPAIR_ALGORITHM);
+            keyPairGenerator.initialize(KEYPAIR_SIZE);
+            KeyPair keyPair = keyPairGenerator.generateKeyPair();
 
-        this.keyAgreement = KeyAgreement.getInstance(KEYPAIR_ALGORITHM);
-        keyAgreement.init(keyPair.getPrivate());
+            this.keyAgreement = KeyAgreement.getInstance(KEYPAIR_ALGORITHM);
+            keyAgreement.init(keyPair.getPrivate());
 
-        // We encode the key
-        return keyPair.getPublic().getEncoded();
+            // We encode the key
+            return keyPair.getPublic().getEncoded();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
-    public byte[] initializeKeyPair(PublicKey publicKey) throws InvalidKeyException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+    public byte[] initializeKeyPair(PublicKey publicKey){
         // When the second keypair is initialized, it is important that it uses the same params as the first public key
-        DHParameterSpec dhParameterSpec = ((DHPublicKey) publicKey).getParams();
+        try {
+            DHParameterSpec dhParameterSpec = ((DHPublicKey) publicKey).getParams();
+            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(KEYPAIR_ALGORITHM);
+            keyPairGenerator.initialize(dhParameterSpec);
+            KeyPair keyPair = keyPairGenerator.generateKeyPair();
 
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(KEYPAIR_ALGORITHM);
-        keyPairGenerator.initialize(dhParameterSpec);
-        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+            this.keyAgreement = KeyAgreement.getInstance(KEYPAIR_ALGORITHM);
+            keyAgreement.init(keyPair.getPrivate());
 
-        this.keyAgreement = KeyAgreement.getInstance(KEYPAIR_ALGORITHM);
-        keyAgreement.init(keyPair.getPrivate());
-
-        return keyPair.getPublic().getEncoded();
+            return keyPair.getPublic().getEncoded();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
-    public PublicKey instantiatePublicKey(byte[] encodedPublicKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        KeyFactory keyFactory = KeyFactory.getInstance(KEYPAIR_ALGORITHM);
-        X509EncodedKeySpec x509EncodedKeySpec = new X509EncodedKeySpec(encodedPublicKey);
-        return keyFactory.generatePublic(x509EncodedKeySpec);
+    public PublicKey instantiatePublicKey(byte[] encodedPublicKey) {
+        try {
+            KeyFactory keyFactory = KeyFactory.getInstance(KEYPAIR_ALGORITHM);
+            X509EncodedKeySpec x509EncodedKeySpec = new X509EncodedKeySpec(encodedPublicKey);
+            return keyFactory.generatePublic(x509EncodedKeySpec);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public byte[] generateSecret(PublicKey publicKey) throws InvalidKeyException {

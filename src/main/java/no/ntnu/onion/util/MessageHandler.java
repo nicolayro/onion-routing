@@ -1,16 +1,17 @@
 package no.ntnu.onion.util;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 
 /**
  * Handles I/O between sockets
  */
 public class MessageHandler {
-    private final BufferedReader reader;
-    private final PrintWriter writer;
+    // Defines how many bytes are allocated for different data
+    public static final int BYTES_FOR_MSG_LEN = 4;
+
+    private final InputStream inputStream;
+    private final OutputStream outputStream;
 
     /**
      * Creates I/O Streams between the current socket and the socket given in the constructor
@@ -19,22 +20,26 @@ public class MessageHandler {
      * @throws IOException if there is an error
      */
     public MessageHandler(Socket connection) throws IOException {
-        reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-        writer = new PrintWriter(connection.getOutputStream(), true);
+        inputStream = connection.getInputStream();
+        outputStream = connection.getOutputStream();
     }
 
     /**
      * Reads a message given from the socket, and prints it to the terminal
      * Prints an error message if there is an error
      *
-     * @return message in string form
+     * @return byte array that was read form
      */
-    public String readMessage() {
+    public byte[] readMessage() {
         try {
-            return reader.readLine();
+            byte[] messageLengthBytes = inputStream.readNBytes(BYTES_FOR_MSG_LEN);
+            int messageLength = getInt(messageLengthBytes);
+            byte[] message = new byte[messageLength];
+            inputStream.readNBytes(message, 0 , messageLength);
+            return message;
         } catch(Exception e) {
             System.out.println("Was not able to read message");
-            return "There was an error";
+            return new byte[0];
         }
     }
 
@@ -44,24 +49,11 @@ public class MessageHandler {
      *
      * @param message to send
      */
-    public void sendMessage(String message) {
+    public void sendMessage(byte[] message) {
         try {
-            writer.println(message);
+            outputStream.write(addLengthToStart(message));
         } catch (Exception e) {
             System.out.println("Was not able to send message!");
-        }
-    }
-
-    /**
-     * Sends an object to the given socket
-     *
-     * @param object to send
-     */
-    public void sendObject(Object object) {
-        try {
-            writer.print(object);
-        } catch (Exception e) {
-            System.out.println("Was not able to send object!");
         }
     }
 
@@ -70,10 +62,55 @@ public class MessageHandler {
      */
     public void close() {
         try {
-            reader.close();
-            writer.close();
+            inputStream.close();
+            outputStream.close();
         } catch (Exception e) {
             System.out.println("There was an error closing the I/O streams");
         }
+    }
+
+    /**
+     * This method takes a byte array and adds _four_ bytes to the beginning of the array to define the length
+     * of the message
+     *
+     * @return original message, with the length of the message padded to the first four bytes of the message
+     *
+     */
+    public byte[] addLengthToStart(byte[] arr) {
+        byte[] newArr = new byte[arr.length + BYTES_FOR_MSG_LEN];
+        byte[] lengthAsBytes = getBytes(arr.length);
+        System.arraycopy(lengthAsBytes, 0, newArr, 0, lengthAsBytes.length);
+        System.arraycopy(arr, 0, newArr, lengthAsBytes.length, arr.length);
+        return newArr;
+    }
+
+    /**
+     * Creates an int of four bytes
+     *
+     * @param arr array to convert
+     * @return returns int
+     */
+    public int getInt(byte[] arr) {
+        return ByteBuffer.wrap(arr).getInt();
+    }
+
+    /**
+     * Creates a short of two bytes
+     *
+     * @param arr array to convert
+     * @return returns short
+     */
+    public short getShort(byte[] arr) {
+        return ByteBuffer.wrap(arr).getShort();
+    }
+
+    /**
+     * Helper method for converting an integer into a four byte array
+     *
+     * @param value integer to be converted
+     * @return array of four bytes, representing the integer value
+     */
+    public byte[] getBytes(int value) {
+        return ByteBuffer.allocate(4).putInt(value).array();
     }
 }
