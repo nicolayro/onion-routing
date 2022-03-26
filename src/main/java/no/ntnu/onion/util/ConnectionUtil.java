@@ -6,9 +6,9 @@ import java.nio.ByteBuffer;
 /**
  * Handles I/O between sockets
  */
-public class MessageHandler {
+public class ConnectionUtil {
     // Defines how many bytes are allocated for different data
-    public static final int BYTES_FOR_MSG_LEN = 4;
+    private static final int BYTES_FOR_MSG_LEN = 4;
 
     private final InputStream inputStream;
     private final OutputStream outputStream;
@@ -19,7 +19,7 @@ public class MessageHandler {
      * @param connection socket to connect with
      * @throws IOException if there is an error
      */
-    public MessageHandler(Socket connection) throws IOException {
+    public ConnectionUtil(Socket connection) throws IOException {
         inputStream = connection.getInputStream();
         outputStream = connection.getOutputStream();
     }
@@ -30,14 +30,13 @@ public class MessageHandler {
      *
      * @return byte array that was read form
      */
-    public byte[] readMessage() {
+    public byte[] read() {
         try {
-            byte[] messageLengthBytes = inputStream.readNBytes(BYTES_FOR_MSG_LEN);
-            int messageLength = getInt(messageLengthBytes);
+            int messageLength = getInt(inputStream.readNBytes(BYTES_FOR_MSG_LEN));
             byte[] message = new byte[messageLength];
-            inputStream.readNBytes(message, 0 , messageLength);
+            inputStream.readNBytes(message, 0, messageLength);
             return message;
-        } catch(Exception e) {
+        } catch (Exception e) {
             System.out.println("Was not able to read message");
             return new byte[0];
         }
@@ -49,9 +48,10 @@ public class MessageHandler {
      *
      * @param message to send
      */
-    public void sendMessage(byte[] message) {
+    public void send(byte[] message) {
         try {
-            outputStream.write(addLengthToStart(message));
+            byte[] messageWithLength = addLengthToStart(message);
+            outputStream.write(messageWithLength);
         } catch (Exception e) {
             System.out.println("Was not able to send message!");
         }
@@ -90,7 +90,7 @@ public class MessageHandler {
      * @param arr array to convert
      * @return returns int
      */
-    public int getInt(byte[] arr) {
+    private int getInt(byte[] arr) {
         return ByteBuffer.wrap(arr).getInt();
     }
 
@@ -100,7 +100,7 @@ public class MessageHandler {
      * @param arr array to convert
      * @return returns short
      */
-    public short getShort(byte[] arr) {
+    private short getShort(byte[] arr) {
         return ByteBuffer.wrap(arr).getShort();
     }
 
@@ -110,7 +110,9 @@ public class MessageHandler {
      * @param value integer to be converted
      * @return array of four bytes, representing the integer value
      */
-    public byte[] getBytes(int value) {
+    private byte[] getBytes(int value) {
         return ByteBuffer.allocate(4).putInt(value).array();
     }
+
+
 }

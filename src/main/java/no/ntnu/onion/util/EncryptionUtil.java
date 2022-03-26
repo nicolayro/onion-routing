@@ -77,9 +77,9 @@ public class EncryptionUtil {
         }
     }
 
-    public String decrypt(byte[] encryptedMessage){
+    public byte[] decrypt(byte[] encryptedMessage){
         try {
-           return new String(decryptionCipher.doFinal(encryptedMessage));
+           return decryptionCipher.doFinal(encryptedMessage);
         } catch (Exception e) {
             e.printStackTrace();
             return null;

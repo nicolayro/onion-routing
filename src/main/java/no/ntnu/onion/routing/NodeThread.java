@@ -2,12 +2,14 @@ package no.ntnu.onion.routing;
 
 import no.ntnu.onion.util.DiffieHellman;
 import no.ntnu.onion.util.EncryptionUtil;
-import no.ntnu.onion.util.MessageHandler;
+import no.ntnu.onion.util.ConnectionUtil;
+import no.ntnu.onion.util.MessageUtil;
 
+import java.io.IOException;
+import java.lang.reflect.GenericDeclaration;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 
 /**
@@ -44,31 +46,41 @@ import java.security.PublicKey;
  *
  */
 public class NodeThread implements Runnable{
-    private static final int BYTES_FOR_PK_LEN = 4;
-
     private final Socket socket;
+    private final ConnectionUtil connection;
+    private final MessageUtil messageUtil;
     private final DiffieHellman keyExchange;
-    private MessageHandler messageHandler;
     private EncryptionUtil encryptionUtil;
 
-    private int offset = 0;
-
-    public NodeThread(Socket socket) {
+    public NodeThread(Socket socket) throws IOException {
         this.socket = socket;
+        this.connection = new ConnectionUtil(socket);
         this.keyExchange = new DiffieHellman();
+        this.messageUtil = new MessageUtil();
     }
 
     @Override
     public void run() {
         try {
-            messageHandler = new MessageHandler(socket);
-            byte[] request;
-            byte[] response;
+            byte[] message;
+            byte[] answer;
 
             // The actual I/O loop
-            while((request = messageHandler.readMessage()) != null) {
-                response = handleRequest(request);
-                messageHandler.sendMessage(response);
+            while((message= connection.read()) != null) {
+                // Trim request
+                int requestType = message[0];
+                byte[] requestPayload = messageUtil.trimFirst(message);
+
+                if(requestType == MessageUtil.HANDSHAKE) {
+                    // Handshake
+                    answer = handleHandshake(requestPayload);
+                } else {
+                    // Message
+                    answer = handleRequest(requestPayload);
+                }
+
+                // Answer
+                connection.send(answer);
             }
 
         } catch (Exception e) {
@@ -76,71 +88,46 @@ public class NodeThread implements Runnable{
         }
     }
 
-    private byte[] handleRequest(byte[] request) {
-        if(request[0] == 1) {
-            offset++;
-            System.out.println("Handshake");
-            return handleHandshake(request);
-            // The request is a handshake! We have to read the public key, and use it for initializing our own.
+    private byte[] handleHandshake(byte[] message){
+        try {
+            // Read their public key and instantiate it
+            PublicKey theirPublicKey = keyExchange.instantiatePublicKey(messageUtil.readPublicKey(message));
+
+            // Initialize our own keypair with the same parameter spec as their public key. We
+            // also fetch our own public key for later use
+            byte[] ourPublicKeyArr =  keyExchange.initializeKeyPair(theirPublicKey);
+
+            // Now we can generate the session key for encryption, again with their public key
+            encryptionUtil = new EncryptionUtil(keyExchange.generateSecret(theirPublicKey));
+
+            // We send back our public key and the params used for encryption
+            return messageUtil.combineArrays(ourPublicKeyArr, encryptionUtil.getEncodedParams());
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+            return null;
         }
-        System.out.println("Message");
-        handleMessage(request);
-        byte[] response = "Thank you for the request, here is the response".getBytes(StandardCharsets.UTF_8);
+    }
+
+    private byte[] handleRequest(byte[] encryptedRequest) {
+        // The message at hand is now encrypted, according to the byte structure that is defined. Therefor we
+        // start by decrypting it
+        byte[] decryptedRequest = encryptionUtil.decrypt(encryptedRequest);
+        System.out.printf("Message from client: %s\n", new String(decryptedRequest));
+
+        // Now the first part of the message should contain information about where to send the data.
+        int to = messageUtil.readWhereTo(decryptedRequest);
+
+        // Now we try to open a connection with the person to send to
+        sendMessage();
+
+        // At some point we should get a response. This response we should encrypt
+        byte[] response = ("Hello, Client! This is the Server. Your message was: " + new String(decryptedRequest)).getBytes(StandardCharsets.UTF_8);
+
         return encryptionUtil.encrypt(response);
     }
 
-    private byte[] handleHandshake(byte[] request) {
-        // Read the first to bytes for the length of the public key
-        byte[] publicKeyLengthArr = new byte[BYTES_FOR_PK_LEN];
-        System.arraycopy(request, offset, publicKeyLengthArr, 0, publicKeyLengthArr.length);
-        int publicKeyLength = messageHandler.getInt(publicKeyLengthArr);
-        System.out.printf("Public key length: %d\n", publicKeyLength);
-        offset += publicKeyLengthArr.length;
-
-        // Read the actual public key
-        byte[] publicKeyArr = new byte[publicKeyLength];
-        System.arraycopy(request, offset, publicKeyArr, 0, publicKeyArr.length);
-
-        // Now we can generate our own keypair
-        PublicKey publicKey = keyExchange.instantiatePublicKey(publicKeyArr);
-        byte[] ourPublicKey =  keyExchange.initializeKeyPair(publicKey);
-        byte[] ourPublicKeyWithLength = messageHandler.addLengthToStart(ourPublicKey);
-
-        byte[] response = new byte[0];
-
-        // Now we can generate the secret
-        try {
-            offset = 1;
-            byte[] secret = keyExchange.generateSecret(publicKey);
-            System.out.println("Secret Server-Side: " + DiffieHellman.toHexString(secret));
-            encryptionUtil = new EncryptionUtil(secret);
-
-            byte[] encryptionParams = encryptionUtil.getEncodedParams();
-            byte[] encryptionParamsWithLength = messageHandler.addLengthToStart(encryptionParams);
-
-            response = new byte[ourPublicKeyWithLength.length + encryptionParamsWithLength.length];
-            System.arraycopy(ourPublicKeyWithLength, 0, response, 0, ourPublicKeyWithLength.length);
-            System.arraycopy(encryptionParamsWithLength, 0, response, ourPublicKeyWithLength.length, encryptionParamsWithLength.length);
-
-            // If we get here, we are ready to encrypt and decrypt
-
-        } catch (InvalidKeyException e) {
-            e.printStackTrace();
-        }
-
-        // Now that everything has gone well, we must return our own public key such that the sender can of
-        // the other key can create the same secret we just created
-        return response;
-
+    private void sendMessage() {
+        //
     }
-
-    private void handleMessage(byte[] request) {
-
-        byte[] message = new byte[request.length - 1];
-        System.arraycopy(request, 1, message, 0, message.length);
-        System.out.println("Request: " + encryptionUtil.decrypt(message));
-
-    }
-
 
 }
