@@ -7,5 +7,5 @@ no/ntnu/onion/util/MessageUtil.class
 no/ntnu/onion/routing/Node.class
 no/ntnu/onion/routing/NodeThread.class
 no/ntnu/onion/util/EncryptionUtil.class
-no/ntnu/onion/io/DemoClient.class
 no/ntnu/onion/routing/OldNode.class
+no/ntnu/onion/DemoClient.class

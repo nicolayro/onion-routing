@@ -10,7 +10,6 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.PublicKey;
-import java.util.Arrays;
 
 /**
  * When a client connects to a node, a new thread is spawned for handling that request. This thread
@@ -52,7 +51,7 @@ public class NodeThread implements Runnable {
     private final DiffieHellman keyExchange;
 
     private EncryptionUtil encryptionUtil;
-    private Connection to;
+    private Connection nextConnection;
 
     public NodeThread(Socket socket) throws IOException {
         this.socket = socket;
@@ -63,7 +62,7 @@ public class NodeThread implements Runnable {
 
     @Override
     public void run() {
-        // Little endpoint thing
+        // Little demo server
         if(socket.getLocalPort() == 1010) {
             while(true) {
                 String request = new String(connection.read());
@@ -130,21 +129,15 @@ public class NodeThread implements Runnable {
 
         // Now we try to open a connection with the person to send to
         // At some point we should get a response. This response we should encrypt
-        byte[] response = sendMessage(message, to);
+        if(nextConnection == null) {
+            nextConnection = new Connection(new Socket("localhost", to));
+        }
+        nextConnection.send(message);
+
+        byte[] response = nextConnection.read();
 
         return encryptionUtil.encrypt(response);
     }
 
-    private byte[] sendMessage(byte[] request, int destinationPort) throws IOException {
-        if(destinationPort == 0) {
-            return ("Hello, Client! This is the Server. Your message was: " + new String(request)).getBytes(StandardCharsets.UTF_8);
-        }
-
-        if(to == null) {
-            to = new Connection(new Socket("localhost", destinationPort));
-        }
-        to.send(request);
-        return to.read();
-    }
 
 }

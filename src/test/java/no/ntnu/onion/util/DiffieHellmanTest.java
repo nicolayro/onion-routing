@@ -1,6 +1,7 @@
 package no.ntnu.onion.util;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -11,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class DiffieHellmanTest {
 
     @Test
+    @DisplayName("Successful Key Exchange")
     public void successfulKeyExchange() {
         try {
             DiffieHellman diffieHellman1 = new DiffieHellman();
