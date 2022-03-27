@@ -2,15 +2,15 @@ package no.ntnu.onion.routing;
 
 import no.ntnu.onion.util.DiffieHellman;
 import no.ntnu.onion.util.EncryptionUtil;
-import no.ntnu.onion.util.ConnectionUtil;
+import no.ntnu.onion.util.Connection;
 import no.ntnu.onion.util.MessageUtil;
 
 import java.io.IOException;
-import java.lang.reflect.GenericDeclaration;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.PublicKey;
+import java.util.Arrays;
 
 /**
  * When a client connects to a node, a new thread is spawned for handling that request. This thread
@@ -45,28 +45,40 @@ import java.security.PublicKey;
  *           Message length
  *
  */
-public class NodeThread implements Runnable{
+public class NodeThread implements Runnable {
     private final Socket socket;
-    private final ConnectionUtil connection;
+    private final Connection connection;
     private final MessageUtil messageUtil;
     private final DiffieHellman keyExchange;
+
     private EncryptionUtil encryptionUtil;
+    private Connection to;
 
     public NodeThread(Socket socket) throws IOException {
         this.socket = socket;
-        this.connection = new ConnectionUtil(socket);
+        this.connection = new Connection(socket);
         this.keyExchange = new DiffieHellman();
         this.messageUtil = new MessageUtil();
     }
 
     @Override
     public void run() {
+        // Little endpoint thing
+        if(socket.getLocalPort() == 1010) {
+            while(true) {
+                String request = new String(connection.read());
+                System.out.println(request);
+                byte[] message = ("Hello, Client! This is the Server. Your message was: " + request).getBytes(StandardCharsets.UTF_8);
+                connection.send(message);
+            }
+        }
+
         try {
             byte[] message;
             byte[] answer;
 
             // The actual I/O loop
-            while((message= connection.read()) != null) {
+            while((message = connection.read()) != null) {
                 // Trim request
                 int requestType = message[0];
                 byte[] requestPayload = messageUtil.trimFirst(message);
@@ -95,7 +107,7 @@ public class NodeThread implements Runnable{
 
             // Initialize our own keypair with the same parameter spec as their public key. We
             // also fetch our own public key for later use
-            byte[] ourPublicKeyArr =  keyExchange.initializeKeyPair(theirPublicKey);
+            byte[] ourPublicKeyArr = keyExchange.initializeKeyPair(theirPublicKey);
 
             // Now we can generate the session key for encryption, again with their public key
             encryptionUtil = new EncryptionUtil(keyExchange.generateSecret(theirPublicKey));
@@ -108,26 +120,31 @@ public class NodeThread implements Runnable{
         }
     }
 
-    private byte[] handleRequest(byte[] encryptedRequest) {
+    private byte[] handleRequest(byte[] encryptedRequest) throws IOException {
         // The message at hand is now encrypted, according to the byte structure that is defined. Therefor we
         // start by decrypting it
         byte[] decryptedRequest = encryptionUtil.decrypt(encryptedRequest);
-        System.out.printf("Message from client: %s\n", new String(decryptedRequest));
 
-        // Now the first part of the message should contain information about where to send the data.
         int to = messageUtil.readWhereTo(decryptedRequest);
+        byte[] message = messageUtil.readMessage(decryptedRequest);
 
         // Now we try to open a connection with the person to send to
-        sendMessage();
-
         // At some point we should get a response. This response we should encrypt
-        byte[] response = ("Hello, Client! This is the Server. Your message was: " + new String(decryptedRequest)).getBytes(StandardCharsets.UTF_8);
+        byte[] response = sendMessage(message, to);
 
         return encryptionUtil.encrypt(response);
     }
 
-    private void sendMessage() {
-        //
+    private byte[] sendMessage(byte[] request, int destinationPort) throws IOException {
+        if(destinationPort == 0) {
+            return ("Hello, Client! This is the Server. Your message was: " + new String(request)).getBytes(StandardCharsets.UTF_8);
+        }
+
+        if(to == null) {
+            to = new Connection(new Socket("localhost", destinationPort));
+        }
+        to.send(request);
+        return to.read();
     }
 
 }

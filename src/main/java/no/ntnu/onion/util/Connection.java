@@ -6,7 +6,7 @@ import java.nio.ByteBuffer;
 /**
  * Handles I/O between sockets
  */
-public class ConnectionUtil {
+public class Connection {
     // Defines how many bytes are allocated for different data
     private static final int BYTES_FOR_MSG_LEN = 4;
 
@@ -19,7 +19,7 @@ public class ConnectionUtil {
      * @param connection socket to connect with
      * @throws IOException if there is an error
      */
-    public ConnectionUtil(Socket connection) throws IOException {
+    public Connection(Socket connection) throws IOException {
         inputStream = connection.getInputStream();
         outputStream = connection.getOutputStream();
     }
@@ -33,12 +33,13 @@ public class ConnectionUtil {
     public byte[] read() {
         try {
             int messageLength = getInt(inputStream.readNBytes(BYTES_FOR_MSG_LEN));
+//            System.out.println("Receive length: " + (messageLength + 4));
             byte[] message = new byte[messageLength];
             inputStream.readNBytes(message, 0, messageLength);
             return message;
         } catch (Exception e) {
-            System.out.println("Was not able to read message");
-            return new byte[0];
+            e.printStackTrace();
+            return null;
         }
     }
 
@@ -51,9 +52,10 @@ public class ConnectionUtil {
     public void send(byte[] message) {
         try {
             byte[] messageWithLength = addLengthToStart(message);
+//            System.out.println("Send length: " + messageWithLength.length);
             outputStream.write(messageWithLength);
         } catch (Exception e) {
-            System.out.println("Was not able to send message!");
+            e.printStackTrace();
         }
     }
 
@@ -76,7 +78,7 @@ public class ConnectionUtil {
      * @return original message, with the length of the message padded to the first four bytes of the message
      *
      */
-    public byte[] addLengthToStart(byte[] arr) {
+    private byte[] addLengthToStart(byte[] arr) {
         byte[] newArr = new byte[arr.length + BYTES_FOR_MSG_LEN];
         byte[] lengthAsBytes = getBytes(arr.length);
         System.arraycopy(lengthAsBytes, 0, newArr, 0, lengthAsBytes.length);

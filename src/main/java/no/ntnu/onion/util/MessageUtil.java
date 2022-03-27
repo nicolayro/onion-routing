@@ -1,13 +1,13 @@
 package no.ntnu.onion.util;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 
 public class MessageUtil {
     public static final int HANDSHAKE = 0;
     public static final int MESSAGE = 1;
 
     private static final int BYTES_FOR_LEN = 4;
+    private static final int BYTES_FOR_TO = 4;
 
     /**
      * Empty constructor
@@ -152,7 +152,29 @@ public class MessageUtil {
      * @param arr arr to read
      * @return short value of the first to bytes
      */
-    public short readWhereTo(byte[] arr) {
-        return getShort(new byte[]{arr[0], arr[1]});
+    public int readWhereTo(byte[] arr) {
+        return getInt(new byte[]{arr[0], arr[1], arr[2], arr[3]});
+    }
+
+    /**
+     * Creates a message with information about where to send the message and the length of the message
+     * @param arr message
+     * @param to where to send
+     * @return completed message
+     */
+    public byte[] addWhereTo(byte[] arr, int to) {
+        byte[] request = new byte[arr.length + BYTES_FOR_LEN + BYTES_FOR_TO];
+        byte[] toAsBytes = getBytes(to);
+        System.arraycopy(toAsBytes, 0, request, 0, BYTES_FOR_TO);
+        byte[] messageWithLength = addLengthToStart(arr, BYTES_FOR_LEN);
+        System.arraycopy(messageWithLength, 0, request, BYTES_FOR_TO, messageWithLength.length);
+        return request;
+    }
+
+    public byte[] readMessage(byte[] decryptedRequest) {
+        int messageLen = getInt(new byte[]{decryptedRequest[4], decryptedRequest[5], decryptedRequest[6], decryptedRequest[7]});
+        byte[] message = new byte[messageLen];
+        System.arraycopy(decryptedRequest, 8, message, 0, messageLen);
+        return message;
     }
 }
