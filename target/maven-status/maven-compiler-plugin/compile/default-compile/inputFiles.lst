@@ -1,1 +1,11 @@
-/Users/nicolayro/Nettverk/onion/src/main/java/Main.java
+/Users/nicolayro/Nettverk/onion/src/main/java/no/ntnu/onion/util/Connection.java
+/Users/nicolayro/Nettverk/onion/src/main/java/no/ntnu/onion/util/EncryptionUtil.java
+/Users/nicolayro/Nettverk/onion/src/main/java/no/ntnu/onion/util/DiffieHellman.java
+/Users/nicolayro/Nettverk/onion/src/main/java/no/ntnu/onion/util/MessageUtil.java
+/Users/nicolayro/Nettverk/onion/src/main/java/no/ntnu/onion/routing/NodeThread.java
+/Users/nicolayro/Nettverk/onion/src/main/java/no/ntnu/onion/routing/Payload.java
+/Users/nicolayro/Nettverk/onion/src/main/java/no/ntnu/onion/io/DemoClient.java
+/Users/nicolayro/Nettverk/onion/src/main/java/no/ntnu/onion/Main.java
+/Users/nicolayro/Nettverk/onion/src/main/java/no/ntnu/onion/io/OnionRouter.java
+/Users/nicolayro/Nettverk/onion/src/main/java/no/ntnu/onion/routing/Node.java
+/Users/nicolayro/Nettverk/onion/src/main/java/no/ntnu/onion/routing/OldNode.java

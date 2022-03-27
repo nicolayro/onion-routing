@@ -1,1 +1,11 @@
-Main.class
+no/ntnu/onion/Main.class
+no/ntnu/onion/util/Connection.class
+no/ntnu/onion/routing/Payload.class
+no/ntnu/onion/util/DiffieHellman.class
+no/ntnu/onion/io/OnionRouter.class
+no/ntnu/onion/util/MessageUtil.class
+no/ntnu/onion/routing/Node.class
+no/ntnu/onion/routing/NodeThread.class
+no/ntnu/onion/util/EncryptionUtil.class
+no/ntnu/onion/io/DemoClient.class
+no/ntnu/onion/routing/OldNode.class
