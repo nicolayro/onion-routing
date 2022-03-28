@@ -14,35 +14,7 @@ import java.security.PublicKey;
 /**
  * When a client connects to a node, a new thread is spawned for handling that request. This thread
  * can receive, read and forward messages. The structure of these messages are defined below
- *
- * ------ BYTE ARRAY STRUCTURE -----
- *
- *
- *  The first byte defines if the message is a handshake or a message. What comes after depends on this. Here
- *  is a simple illustration:
- *
- *  Handshake (1):
- *
- *       Public Key Length
- *             v
- *   ----------------------------------------
- *  | 1 | PKLN |    Public key    | Padding |
- *  ----------------------------------------
- *
- *
- *  Message (0):
- *      Before decryption:
- *       ----------------------------------------
- *      | 0 |         Encrypted message         |
- *      ----------------------------------------
- *
- *      After decryption:
- *        ---------------------------------------
- *      | 0 | To | MSGLN |   Message  | Padding |
- *      ----------------------------------------
- *                  ^
- *           Message length
- *
+
  */
 public class NodeThread implements Runnable {
     private final Socket socket;
@@ -62,7 +34,7 @@ public class NodeThread implements Runnable {
 
     @Override
     public void run() {
-        // Little demo server
+        // This if statement is a hardcoded server that can be used for testing the program
         if(socket.getLocalPort() == 1010) {
             while(true) {
                 String request = new String(connection.read());

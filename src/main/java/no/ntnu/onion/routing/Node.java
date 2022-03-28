@@ -3,6 +3,11 @@ package no.ntnu.onion.routing;
 import java.io.IOException;
 import java.net.ServerSocket;
 
+/**
+ * A node is an integral part to the onion routing concept. When a request is sent, it can be passed through these nodes.
+ * A node can both send and receive messages, and then a request is received, a new thread is spawned for this request.
+ *
+ */
 public class Node {
     private final Integer port;
 

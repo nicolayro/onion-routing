@@ -10,10 +10,48 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 
+
+/**
+ * This is the class which can be used for sending and receiving requests to a certain port, and the connection will
+ * be routed through three nodes with layered encryption, following the concept of onion routing.
+ *
+ * The actual bytes send through the nodes has to have a certain structure for the connection to works,
+ * basically its own protocol. The structure currently used can be found further down. Note that these can change at
+ * any time.
+ *
+ *
+ * ------ BYTE ARRAY STRUCTURE -----
+ *
+ *  The first byte defines if the message is a handshake or a message. What comes after depends on this. Here
+ *  is a simple illustration:
+ *
+ *  Handshake (1):
+ *
+ *       Public Key Length
+ *             v
+ *   ----------------------------------------
+ *  | 1 | PKLN |    Public key    | Padding |
+ *  ----------------------------------------
+ *
+ *
+ *  Message (0):
+ *      Before decryption:
+ *       ----------------------------------------
+ *      | 0 |         Encrypted message         |
+ *      ----------------------------------------
+ *
+ *      After decryption:
+ *       ----------------------------------------
+ *      | 0 | To | MSGLN |   Message  | Padding |
+ *      ----------------------------------------
+ *                  ^
+ *           Message length
+ *
+ */
 public class OnionRouter {
-    private static final int FIRST = 1003;
-    private static final int SECOND = 1001;
-    private static final int THIRD = 1002;
+    private static final int FIRST = 1001;
+    private static final int SECOND = 1002;
+    private static final int THIRD = 1003;
     private int destinationPort;
 
     private EncryptionUtil encryptionUtil1;
@@ -36,14 +74,13 @@ public class OnionRouter {
       *
       */
     public OnionRouter(int destinationPort) throws IOException, InvalidKeyException {
-
+        // Setup
         this.destinationPort = destinationPort;
-        keyExchange = new DiffieHellman();
-        messageUtil = new MessageUtil();
-        connection = new Connection(new Socket("localhost", FIRST));
+        this.keyExchange = new DiffieHellman();
+        this.messageUtil = new MessageUtil();
+        this.connection = new Connection(new Socket("localhost", FIRST));
 
-
-        // (1)'
+        // (1)
         // We make the handshake with the first node
         byte[] ourPublicKey = keyExchange.initializeKeyPair();
         // Send our public key
@@ -84,6 +121,12 @@ public class OnionRouter {
     }
 
 
+    /**
+     * Sends the given message to the port in which this instance of the object is connection to, while routing trough
+     * the nodes for onion routing.
+     *
+     * @param message message to send
+     */
     public void send(String message) {
         byte[] oni = addLayer(message.getBytes(StandardCharsets.UTF_8), encryptionUtil3, destinationPort);
         byte[] onio = addLayer(oni, encryptionUtil2, THIRD);
@@ -91,6 +134,11 @@ public class OnionRouter {
         connection.send(onion);
     }
 
+    /**
+     * After sending a message, a response can be expected. This returns this response.
+     *
+     * @return response of a request
+     */
     public String response() {
         byte[] onion = connection.read();
         byte[] onio = peelLayer(onion, encryptionUtil1);
@@ -98,10 +146,28 @@ public class OnionRouter {
         return new String(peelLayer(oni, encryptionUtil3));
     }
 
+    /**
+     * Helper method for the abstraction of "adding a layer". Currently this method takes in a message, where to send
+     * it and the encryption spec needed for that location, and creates a byte array in accordance to the
+     * structure defined at the top of this class.
+     *
+     * @param message message to add a layer to
+     * @param encryptionUtil encryption spec
+     * @param to location port, for example 1001
+     * @return
+     */
     private byte[] addLayer(byte[] message, EncryptionUtil encryptionUtil, int to) {
         return messageUtil.createMessage(encryptionUtil.encrypt(messageUtil.addWhereTo(message, to)));
     }
 
+    /**
+     * Helper method for the abstraction of "peeling a layer". Currently this method decrypts a messgae according to
+     * the spec in the given EncryptionUtil
+     *
+     * @param message message to "peel" or decrypt
+     * @param encryptionUtil encryption spec
+     * @return decrypted message
+     */
     private byte[] peelLayer(byte[] message, EncryptionUtil encryptionUtil) {
         return encryptionUtil.decrypt(message);
     }

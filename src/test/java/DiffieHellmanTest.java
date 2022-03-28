@@ -1,5 +1,5 @@
-package no.ntnu.onion.util;
-
+import no.ntnu.onion.util.DiffieHellman;
+import no.ntnu.onion.util.EncryptionUtil;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
