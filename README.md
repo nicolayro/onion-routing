@@ -3,17 +3,20 @@
 
 ## Intro
 
-This project will is an assignment for IDATT2104 - Nettverksprogrammering
+This project is an assignment for IDATT2104 - Nettverksprogrammering.
 The assignment is to implement **onion routing** either as software or as a library. 
 We are free to use any programming language, but C++ or Rust implementations are more desired. Even though I would really like to learn more C++, given the complexity of the task I chose to use Java, as it is what I'm most comfortable with.
 
 ## Implemented functionality
-- Nodes that can receive and send trafic
-- Key generation and exchange for encryption
-- Making requests to local endpoints, but passing through three nodes before hand.
+- A OnionRouter class, capable of sending and receiving requests to a server with routing through three nodes with layered encryption between them. To achieve this, the following functionality is implemented:
+  - Nodes that can receive and send traffic
+  - Key generation and safe key exchange for encryption
+  - Construction and interpretation of bytes streamed between endpoints.
+- A simple Demo Client and Sever, for testing the functionality of the Onion Router.
 
 ## Plans
 
+The task does not require completion of all the listed functionality, and because of the size of the task, prioritizing certain pieces of functionality is desired. Therefor,
 I have created a list of goals I can strive for. The point is not to complete all the goals, but to give a path to follow and give an indication of the priority of features.
 
 ### Goals:
@@ -60,7 +63,7 @@ hardcoded in as:
 - 1002
 - 1003
 
-Therefore, an instance of the program should be run on these three ports "in the background". To set this up, open three terminal windows, run this command in the root directory:
+Therefore, an instance of the program should be run on these three ports "in the background". To set this up, open three terminal windows, run this command in the root directory of the project:
 `java -jar target/onion-1.0.jar <port>`. So, for example for port 1001 you would run:
 > java -jar target/onion-1.0.jar 1001
 
@@ -69,7 +72,7 @@ _Note: if one wishes to change these hardcoded ports, it is possible by simply c
 Now the Onion Routing is ready. The project comes with a simple DemoClient which sends a message to port 1010. Launching the program on port 1010, the program does not work as a node but as a simple demo server, which takes in a string message and returns a little response with the original message and some extra text. To run the demo, run these commands:
 
 For the server (run this first):
-> java -jar target/onion-1.0.jar 1001
+> java -jar target/onion-1.0.jar 1010
 
 Then:
 > java -cp target/onion-1.0.jar no.ntnu.onion.DemoClient
