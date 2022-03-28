@@ -1,1 +1,0 @@
-packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"no.ntnu.onion"},{"l":"no.ntnu.onion.routing"},{"l":"no.ntnu.onion.util"}];updateSearchResults();
