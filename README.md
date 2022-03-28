@@ -87,9 +87,6 @@ To run the tests, enter the following terminal command when located within the p
 
 > mvn test
 
-## Documentation
-
-
 ## References
 - [Onion Routing](https://en.wikipedia.org/wiki/Onion_routing)
 - [Diffie-Hellman Key Exchange](https://en.wikipedia.org/wiki/Onion_routing)
